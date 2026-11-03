@@ -1,6 +1,7 @@
 from sqlmodel import SQLModel, Field, create_engine, select, Session
 from fastapi import FastAPI
 from pydantic import BaseModel 
+from fastapi.middleware.cors import CORSMiddleware
 
 class StudentModel(SQLModel, table=True):
 
@@ -12,7 +13,7 @@ class StudentModel(SQLModel, table=True):
         state:str = Field( nullable=False )
         password:str = Field( nullable=False, default="Password@123" )
 
-class StudenInput(BaseModel):
+class StudentInput(BaseModel):
         email:str = Field( nullable=False, unique=True )
         name:str = Field( min_length=3, max_length=16, nullable=False )
         phone:str = Field( nullable=False, unique=True )
@@ -66,6 +67,16 @@ db = Session(connection)
 
 app = FastAPI()
 
+
+# Enable CORS for frontend communication
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins for local development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # @app.get("/dump_data")
 # def dump_dummy_data():
 
@@ -107,7 +118,7 @@ def all_students():
            "data": db.exec(select(StudentModel)).all()
     }
 
-@app.get("/all_students/{id}")
+@app.get("/student_by/{id}")
 def all_students(id:int):
     data= db.exec(select(StudentModel).filter(StudentModel.id)).one_or_none()
     return{
@@ -124,7 +135,7 @@ def all_products():
            "data": db.exec(select(ProductModel)).all()
     }
 
-@app.get("/all_products/{id}")
+@app.get("/products_by/{id}")
 def all_products(id:int):
     data= db.exec(select(ProductModel).filter(ProductModel.id)).one_or_none()
     return{
@@ -134,7 +145,7 @@ def all_products(id:int):
     }
 
 @app.post("/create_student")
-def create_student(student_data: StudenInput):
+def create_student(student_data: StudentInput):
     # new_student = StudentModel(**student_data.dict())
    
     student_data = StudentModel(
@@ -221,7 +232,7 @@ def create_order(order_data: OrderInput):
     }
 
 @app.put("/update_student/{id}")
-def update_student(id:int, student_data: StudenInput):
+def update_student(id:int, student_data: StudentInput):
     existing_student = db.exec(select(StudentModel).filter(StudentModel.id == id)).one_or_none()
     if not existing_student:
         return {
@@ -318,6 +329,23 @@ def delete_student(id:int):
         "data": None
     }
 
+@app.get("/order_by/{id}")
+def all_orders(id:int):
+    data= db.exec(select(OrderModel).filter(OrderModel.id)).one_or_none()
+    return{
+           "status": True if data else False,
+           "Message":"Data fetched successfully",
+           
+    }
+
+@app.get("/all_orders")
+def all_orders():
+    return{
+           "status": "True",
+           "Message":"Data fetched successfully",
+           "data": db.exec(select(OrderModel)).all()
+    }
+
 @app.delete("/delete_product/{id}")
 def delete_product(id:int):
     existing_product = db.exec(select(ProductModel).filter(ProductModel.id == id)).one_or_none()
@@ -356,13 +384,9 @@ def delete_order(id:int):
         "data": None
     }
 
-@app.get("/all_orders")
-def all_orders():
-    return{
-           "status": "True",
-           "Message":"Data fetched successfully",
-           "data": db.exec(select(OrderModel)).all()
-    }
+
+
+
 
 
 
